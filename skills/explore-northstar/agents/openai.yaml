@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explore NorthStar"
+  short_description: "Inspect NorthStar intent as an evidence-backed graph"
+  default_prompt: "Use NorthStar to explain the intent and governance relevant to this work."

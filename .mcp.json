@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "northstar": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        ".",
+        "--locked",
+        "tripartite-agent-surface",
+        "stdio"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "NORTHSTAR_BASE_URL",
+        "NORTHSTAR_BEARER_TOKEN",
+        "NORTHSTAR_TIMEOUT_SECONDS"
+      ]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tripartite-agent-surface"
+version = "0.1.0"
+description = "MCP servers and agent skills for the Tripartite Semantic Federation"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Tripartite"}]
+dependencies = [
+    "httpx>=0.28.0,<1.0.0",
+    "mcp>=2.0.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+tripartite-agent-surface = "tripartite_agent_surface.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: requires a running NorthStar service",
+]

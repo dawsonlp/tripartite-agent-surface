@@ -1,0 +1,23 @@
+{
+  "name": "tripartite-agent-surface",
+  "version": "0.1.0",
+  "description": "Read-only, evidence-preserving access to Tripartite semantic authorities for AI agents.",
+  "author": {
+    "name": "Tripartite"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tripartite Agent Surface",
+    "shortDescription": "Explore intent, data, and code authorities with evidence.",
+    "longDescription": "Provides agent-oriented MCP tools and skills for the Tripartite Semantic Federation. Version 0.1 exposes read-only NorthStar exploration; GroundTruth and Codemesh are planned as separate authority surfaces.",
+    "developerName": "Tripartite",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Search", "Graph exploration"],
+    "defaultPrompt": [
+      "Map the NorthStar intent for this solution.",
+      "What governs this requirement or code symbol?",
+      "Trace the evidence behind this NorthStar relationship."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}
