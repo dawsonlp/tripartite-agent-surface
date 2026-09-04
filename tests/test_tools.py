@@ -4,60 +4,82 @@ import tripartite_agent_surface.northstar_tools as tools
 
 
 class FakeClient:
-    def graph(self) -> dict[str, Any]:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, dict[str, Any]]] = []
+
+    def describe_authority(self, tenant: str) -> dict[str, Any]:
         return {
-            "nodes": {
-                "req://demo/do-thing": {
-                    "type": "CapabilitySpec",
-                    "data": {"title": "Do Thing", "lifecycle": "ACTIVE", "tags": ["demo"]},
-                }
-            },
-            "edges": [],
+            "status": "OK",
+            "authority": "northstar",
+            "catalog_revision": {"revision_id": "nsr-sha256:test"},
+            "effective_scope": {"tenant": tenant},
+            "data": {"supported_operations": list(tools.TOOL_FUNCTIONS)},
         }
 
-    def health(self) -> dict[str, Any]:
-        return {"status": "ok", "node_count": 1, "edge_count": 0}
-
-    def tenants(self) -> dict[str, Any]:
-        return {"tenants": [{"tenant_slug": "tripartite"}]}
-
-    def solutions(self) -> dict[str, Any]:
-        return {"solutions": [{"solution_name": "demo"}]}
-
-    def openapi(self) -> dict[str, Any]:
-        return {"info": {"title": "NorthStar", "version": "test"}, "paths": {"/health": {}}}
-
-    def resolve_uri(self, uri: str, *, default_tenant: str, default_version: str) -> dict[str, Any]:
-        return {"canonical_uri": f"req://{default_tenant}:demo/dothing@{default_version}"}
-
-    def governing_context(self, target_uri: str) -> dict[str, Any]:
-        return {"target_symbol": target_uri, "capabilities": []}
+    def explore(
+        self, tenant: str, action_path: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        self.calls.append((tenant, action_path, payload))
+        return {
+            "status": "OK",
+            "authority": "northstar",
+            "catalog_revision": {"revision_id": "nsr-sha256:test"},
+            "effective_scope": {"tenant": tenant},
+            "normalized_query": payload,
+            "data": {"action_path": action_path},
+        }
 
 
-def test_describe_authority_reports_live_vocabulary(monkeypatch):
-    monkeypatch.setattr(tools, "_client", lambda: FakeClient())
+def test_describe_authority_is_native_passthrough(monkeypatch) -> None:
+    fake = FakeClient()
+    monkeypatch.setattr(tools, "_client", lambda: fake)
     result = tools.describe_authority()
-    assert result["status"] == "ok"
-    assert result["data"]["live_vocabulary"]["node_types"] == ["CapabilitySpec"]
-    assert result["catalog_revision"].startswith("derived-sha256:")
+    assert result["status"] == "OK"
+    assert result["catalog_revision"]["revision_id"] == "nsr-sha256:test"
+    assert len(result["data"]["supported_operations"]) == 9
 
 
-def test_get_nodes_uses_exact_identifiers(monkeypatch):
-    monkeypatch.setattr(tools, "_client", lambda: FakeClient())
-    result = tools.get_nodes(["req://demo/do", "req://demo/do-thing"])
-    assert result["status"] == "partial"
-    assert list(result["data"]["nodes"]) == ["req://demo/do-thing"]
-    assert result["data"]["missing"] == ["req://demo/do"]
+def test_search_maps_controls_to_native_operation(monkeypatch) -> None:
+    fake = FakeClient()
+    monkeypatch.setattr(tools, "_client", lambda: fake)
+    result = tools.search_nodes(
+        "validate",
+        node_types=["CapabilitySpec"],
+        has_relationships=["SATISFIES"],
+        data_fields=["title"],
+        page_size=7,
+    )
+    assert result["status"] == "OK"
+    tenant, action, payload = fake.calls[0]
+    assert tenant == "tripartite"
+    assert action == "nodes:search"
+    assert payload["modes"] == ["STRUCTURED", "LEXICAL"]
+    assert payload["projection"]["data_fields"] == ["title"]
+    assert payload["page"]["size"] == 7
 
 
-def test_resolve_references_does_not_claim_foreign_resolution(monkeypatch):
-    monkeypatch.setattr(tools, "_client", lambda: FakeClient())
-    result = tools.resolve_references([
-        "req://demo/dothing",
+def test_foreign_resolution_is_delegated_to_authority(monkeypatch) -> None:
+    fake = FakeClient()
+    monkeypatch.setattr(tools, "_client", lambda: fake)
+    tools.resolve_references(
+        ["csi://demo/service.run", "data://logical/demo/Thing"],
+        foreign_resolution="SYNTAX_ONLY",
+    )
+    _, action, payload = fake.calls[0]
+    assert action == "references:resolve"
+    assert payload["references"] == [
         "csi://demo/service.run",
         "data://logical/demo/Thing",
-    ])
-    statuses = {item["input"]: item["status"] for item in result["data"]["results"]}
-    assert statuses["req://demo/dothing"] == "resolved"
-    assert statuses["csi://demo/service.run"] == "not_checked"
-    assert statuses["data://logical/demo/Thing"] == "not_checked"
+    ]
+    assert payload["foreign_resolution"] == "SYNTAX_ONLY"
+
+
+def test_compare_and_integrity_are_exposed(monkeypatch) -> None:
+    fake = FakeClient()
+    monkeypatch.setattr(tools, "_client", lambda: fake)
+    tools.compare_revisions("r1", "r2")
+    tools.analyze_integrity(finding_classes=["DANGLING_INTERNAL_REFERENCE"])
+    assert [call[1] for call in fake.calls] == [
+        "revisions:compare",
+        "integrity:analyze",
+    ]

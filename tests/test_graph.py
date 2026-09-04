@@ -1,5 +1,8 @@
-from tripartite_agent_surface.graph import bounded_subgraph, find_paths_in_graph, matching_nodes
-
+from tripartite_agent_surface.graph import (
+    bounded_subgraph,
+    find_paths_in_graph,
+    matching_nodes,
+)
 
 GRAPH = {
     "nodes": {
@@ -13,13 +16,29 @@ GRAPH = {
         },
         "constraint://demo/no-leak": {
             "type": "InvariantSpec",
-            "data": {"title": "No tenant leak", "status": "ACTIVE", "tags": ["security"]},
+            "data": {
+                "title": "No tenant leak",
+                "status": "ACTIVE",
+                "tags": ["security"],
+            },
         },
     },
     "edges": [
-        {"source": "req://demo/checkout", "verb": "GOVERNED_BY", "target": "decision://demo/adr-001-choice"},
-        {"source": "constraint://demo/no-leak", "verb": "CONSTRAINS", "target": "req://demo/checkout"},
-        {"source": "csi://demo/checkout", "verb": "SATISFIES", "target": "req://demo/checkout"},
+        {
+            "source": "req://demo/checkout",
+            "verb": "GOVERNED_BY",
+            "target": "decision://demo/adr-001-choice",
+        },
+        {
+            "source": "constraint://demo/no-leak",
+            "verb": "CONSTRAINS",
+            "target": "req://demo/checkout",
+        },
+        {
+            "source": "csi://demo/checkout",
+            "verb": "SATISFIES",
+            "target": "req://demo/checkout",
+        },
     ],
 }
 

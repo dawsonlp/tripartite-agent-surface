@@ -6,6 +6,8 @@ Restructure NorthStar's read API so an authorized AI agent can explore the nativ
 
 This checklist translates [`docs/northstar-agent-api-requirements.md`](docs/northstar-agent-api-requirements.md) into priority-ordered design, implementation, migration, and verification work. It also incorporates defects observed through the live MCP surface on 2026-09-03.
 
+The evidence-backed implementation position is recorded in [`docs/northstar-v2-conformance.md`](docs/northstar-v2-conformance.md). Checked items are implemented or design-approved as stated; unchecked items are deliberately retained as remaining work.
+
 ## Scope
 
 Included:
@@ -43,7 +45,7 @@ Excluded unless separately approved:
 - Read authorization is enforced by the authority; caller-supplied scope labels are not authorization.
 - Read-only agent exploration is a separate permission boundary from validation and mutation.
 
-No approved API architecture or technical design currently accompanies the requirements. Phase 0 is therefore a mandatory design gate. Later phases define required outcomes and verification but do not approve an unrecorded implementation choice.
+The human CTO approved the requirements, technical design, and recommended CTO decisions on 2026-09-03. Phase 0 is therefore open for implementation. Unchecked items below remain real work; approval does not convert them into evidence of implementation or production fitness.
 
 ## Observed Baseline
 
@@ -51,13 +53,13 @@ No approved API architecture or technical design currently accompanies the requi
 - [x] Seven transitional tools expose discovery, resolution, retrieval, search, traversal, paths, and governing context.
 - [x] The live graph exposes `CapabilitySpec`, `ComponentSpec`, `DecisionSpec`, and `InvariantSpec` with four edge verbs.
 - [x] All ten NorthStar capabilities have one declared CodeMesh `SATISFIES` edge.
-- [ ] NorthStar exposes an authoritative catalog revision or addressable snapshot.
-- [ ] Tenant and solution membership are canonical and enforced by the read API.
-- [ ] Canonical and scoped URI forms behave identically across resolution, lookup, search, and traversal.
+- [x] NorthStar exposes an authoritative catalog revision or addressable snapshot.
+- [x] Tenant and solution membership are canonical and enforced by the read API.
+- [x] Canonical and scoped URI forms behave identically across resolution, lookup, search, and traversal.
 - [ ] Embedded governance references, graph edges, and closure results agree.
-- [ ] Governing-context results contain evidence paths.
-- [ ] Search and graph traversal execute natively with server-side projection, limits, and continuation.
-- [ ] Declared implementation relationships are distinguishable from demonstrated verification evidence.
+- [x] Governing-context results contain evidence paths.
+- [x] Search and graph traversal execute natively with server-side projection, limits, and continuation.
+- [x] Declared implementation relationships are distinguishable from demonstrated verification evidence.
 
 ## Priority Model
 
@@ -72,12 +74,12 @@ No approved API architecture or technical design currently accompanies the requi
 
 ### P0.1 Approve authority and revision semantics
 
-- [ ] Identify the authoritative source for a read: committed repository state, live database state, named snapshot, or an explicitly ordered combination.
-- [ ] Define the catalog revision identity and what content it covers: nodes, edges, embedded fields, membership, schemas, aliases, and provenance.
-- [ ] Define revision creation, retention, expiration, comparison, and stale-token behavior.
-- [ ] Define whether a multi-call session pins a snapshot or uses optimistic revision checks.
-- [ ] Define how global records are inherited into tenant and solution views.
-- [ ] Define `owned`, `inherited`, `governing`, `referenced`, and `visible` membership as distinct relations.
+- [x] Identify the authoritative source for a read: committed repository state, live database state, named snapshot, or an explicitly ordered combination.
+- [x] Define the catalog revision identity and what content it covers: nodes, edges, embedded fields, membership, schemas, aliases, and provenance.
+- [x] Define revision creation, retention, expiration, comparison, and stale-token behavior.
+- [x] Define whether a multi-call session pins a snapshot or uses optimistic revision checks.
+- [x] Define how global records are inherited into tenant and solution views.
+- [x] Define `owned`, `inherited`, `governing`, `referenced`, and `visible` membership as distinct relations.
 - [ ] Record the decisions in approved NorthStar or federation ADRs.
 
 Suggested direction:
@@ -89,15 +91,15 @@ Suggested direction:
 Completion evidence:
 
 - [ ] Two independent implementations can compute the same membership sets and revision identity from the approved rules.
-- [ ] The CTO has approved the authority, membership, inheritance, and retention decisions.
+- [x] The CTO has approved the authority, membership, inheritance, and retention decisions.
 
 ### P0.2 Approve authorization semantics
 
-- [ ] Define authenticated caller identity and effective tenant, solution, lifecycle, provenance, and raw-source grants.
-- [ ] Define global-administration and cross-tenant roles, if any.
-- [ ] Define denial behavior so counts, errors, ambiguity candidates, snippets, and continuation tokens do not leak unauthorized records.
-- [ ] Define audit fields and retention without logging secrets or unrestricted record bodies.
-- [ ] Decide whether authorization is evaluated before or during snapshot/query construction.
+- [x] Define authenticated caller identity and effective tenant, solution, lifecycle, provenance, and raw-source grants.
+- [x] Define global-administration and cross-tenant roles, if any.
+- [x] Define denial behavior so counts, errors, ambiguity candidates, snippets, and continuation tokens do not leak unauthorized records.
+- [x] Define audit fields and retention without logging secrets or unrestricted record bodies.
+- [x] Decide whether authorization is evaluated before or during snapshot/query construction.
 
 Suggested direction:
 
@@ -107,15 +109,15 @@ Suggested direction:
 Completion evidence:
 
 - [ ] Threat model covers direct retrieval, search, graph traversal, aggregation, errors, timing-sensitive counts, and continuation.
-- [ ] Negative authorization scenarios are part of the approved technical design.
+- [x] Negative authorization scenarios are part of the approved technical design.
 
 ### P0.3 Approve the graph and relationship source of truth
 
 - [ ] Inventory every embedded relationship field and graph edge representation.
-- [ ] Define which representation is authoritative for each relationship.
-- [ ] Define endpoint type rules, cardinality, parallel-edge semantics, foreign endpoint handling, and lifecycle behavior.
-- [ ] Define how projections such as `governed_by`, `constraints`, and `exported_capabilities` are generated and checked.
-- [ ] Define the evidence model for declared, observed, verified, contradicted, and stale relationships.
+- [x] Define which representation is authoritative for each relationship.
+- [x] Define endpoint type rules, cardinality, parallel-edge semantics, foreign endpoint handling, and lifecycle behavior.
+- [x] Define how projections such as `governed_by`, `constraints`, and `exported_capabilities` are generated and checked.
+- [x] Define the evidence model for declared, observed, verified, contradicted, and stale relationships.
 
 Suggested direction:
 
@@ -124,23 +126,23 @@ Suggested direction:
 
 Completion evidence:
 
-- [ ] The technical design prevents embedded fields, native edges, and closures from silently disagreeing.
-- [ ] Relationship migration and rollback rules are approved.
+- [x] The technical design prevents embedded fields, native edges, and closures from silently disagreeing.
+- [x] Relationship migration and rollback rules are approved.
 
 ### P0.4 Produce and approve the technical design
 
-- [ ] Define versioned request and response schemas for all nine logical operations.
-- [ ] Define the common result envelope, per-item result, error taxonomy, continuation token, projection syntax, and budget syntax.
-- [ ] Define repository, query, authorization, snapshot, and audit boundaries without exposing persistence details publicly.
-- [ ] Define REST and MCP mappings while keeping one semantic contract.
-- [ ] Define backward compatibility and deprecation for current `/api/v1` consumers.
-- [ ] Define migration sequencing, rollback, observability, and conformance testing.
+- [x] Define versioned request and response schemas for all nine logical operations.
+- [x] Define the common result envelope, per-item result, error taxonomy, continuation token, projection syntax, and budget syntax.
+- [x] Define repository, query, authorization, snapshot, and audit boundaries without exposing persistence details publicly.
+- [x] Define REST and MCP mappings while keeping one semantic contract.
+- [x] Define backward compatibility and deprecation for current `/api/v1` consumers.
+- [x] Define migration sequencing, rollback, observability, and conformance testing.
 - [ ] Review the design as both a systems architecture and implementation-buildability artifact.
 
 Completion evidence:
 
 - [ ] Approved technical design maps every `NS-AE-*` requirement and `AS-*` scenario to a component and test.
-- [ ] No implementation phase below depends on an unresolved design decision.
+- [x] No implementation phase below depends on an unresolved design decision.
 
 ---
 
@@ -150,28 +152,28 @@ Depends on Phase 0 approval.
 
 ### P0.5 Introduce authoritative snapshots and revision-bound reads
 
-- [ ] Generate a revision when authoritative semantic content changes.
-- [ ] Make revisions addressable for all content operations.
-- [ ] Include revision and schema version in native nodes and edges.
-- [ ] Reject stale or unavailable revisions with a structured error.
-- [ ] Ensure pagination and continuation remain bound to the originating scope, query, and revision.
-- [ ] Detect and reject token reuse under a different caller or scope.
-- [ ] Expose current revision and supported historical range through `describe_authority`.
+- [x] Generate a revision when authoritative semantic content changes.
+- [x] Make revisions addressable for all content operations.
+- [x] Include revision and schema version in native nodes and edges.
+- [x] Reject stale or unavailable revisions with a structured error.
+- [x] Ensure pagination and continuation remain bound to the originating scope, query, and revision.
+- [x] Detect and reject token reuse under a different caller or scope.
+- [x] Expose current revision and supported historical range through `describe_authority`.
 
 Verification:
 
 - [ ] Repeated reads at one revision are semantically identical.
-- [ ] A catalog mutation between two pages cannot mix revisions.
+- [x] A catalog mutation between two pages cannot mix revisions.
 - [ ] Expired, forged, and cross-tenant continuation tokens fail without leakage.
-- [ ] `compare_revisions` can reproduce a known controlled change.
+- [x] `compare_revisions` can reproduce a known controlled change.
 
 ### P0.6 Enforce canonical tenant and solution scope
 
-- [ ] Persist or deterministically materialize explicit record membership and inheritance reasons.
-- [ ] Enforce authorization before retrieving native bodies or computing derived results.
-- [ ] Report effective caller scope, requested scope, defaults, and inheritance policy in every response.
+- [x] Persist or deterministically materialize explicit record membership and inheritance reasons.
+- [x] Enforce authorization before retrieving native bodies or computing derived results.
+- [x] Report effective caller scope, requested scope, defaults, and inheritance policy in every response.
 - [ ] Replace ambiguous `total_nodes` with separately defined unique, owned, inherited, governing, and visible counts.
-- [ ] Make foreign endpoints retain the NorthStar edge without importing or exposing foreign-authority content.
+- [x] Make foreign endpoints retain the NorthStar edge without importing or exposing foreign-authority content.
 
 Verification:
 
@@ -181,10 +183,10 @@ Verification:
 
 ### P0.7 Establish the common result and error contract
 
-- [ ] Return request identifier, normalized query, effective scope, revision, structured data, completeness, defaults, warnings, unresolved references, limits, statistics, and continuation consistently.
+- [x] Return request identifier, normalized query, effective scope, revision, structured data, completeness, defaults, warnings, unresolved references, limits, statistics, and continuation consistently.
 - [ ] Give each batched item an independent success, not-found, ambiguous, unauthorized, stale, unsupported, dependency-unavailable, timeout, resource-limit, or internal-error status.
-- [ ] Preserve successful items during partial failure.
-- [ ] Make empty results valid and explicit; never substitute examples or stale cached content.
+- [x] Preserve successful items during partial failure.
+- [x] Make empty results valid and explicit; never substitute examples or stale cached content.
 - [ ] Mark every non-native result with derivation rule and supporting evidence identifiers.
 
 Verification:
@@ -198,32 +200,32 @@ Verification:
 
 ### P0.8 Normalize canonical identifiers everywhere
 
-- [ ] Use one semantic coordinate model for parsing, equality, hashing, storage lookup, search filtering, and serialization.
-- [ ] Make scoped shorthand and fully qualified canonical forms resolve to the same record.
-- [ ] Preserve input form and aliases separately from canonical identity.
-- [ ] Define tenant/version defaulting and ambiguity rules.
-- [ ] Require resolution to distinguish syntactic normalization from existence proof.
+- [x] Use one semantic coordinate model for parsing, equality, hashing, storage lookup, search filtering, and serialization.
+- [x] Make scoped shorthand and fully qualified canonical forms resolve to the same record.
+- [x] Preserve input form and aliases separately from canonical identity.
+- [x] Define tenant/version defaulting and ambiguity rules.
+- [x] Require resolution to distinguish syntactic normalization from existence proof.
 - [ ] Version the URI grammar and maintain conformance vectors.
 
 Immediate regression to fix:
 
-- [ ] `req://tripartite:northstar/...` canonical prefixes and `req://northstar/...` stored prefixes return the same authorized records.
+- [x] `req://tripartite:northstar/...` canonical prefixes and `req://northstar/...` stored prefixes return the same authorized records.
 
 Verification:
 
 - [ ] `parse(canonicalize(x))` is stable.
-- [ ] Equivalent forms produce equal coordinates and graph keys.
-- [ ] Canonical lookup, search, traversal, and path finding agree.
-- [ ] Normalizing a nonexistent URI does not report the record as existing.
+- [x] Equivalent forms produce equal coordinates and graph keys.
+- [x] Canonical lookup, search, traversal, and path finding agree.
+- [x] Normalizing a nonexistent URI does not report the record as existing.
 
 ### P0.9 Reconcile embedded relationships, graph edges, and closure
 
 - [ ] Migrate current embedded relationship references into the approved canonical representation.
 - [ ] Generate or validate projections atomically.
 - [ ] Reject or quarantine invalid endpoint types, missing internal targets, ambiguous aliases, and unauthorized cross-scope links.
-- [ ] Repair governing-context traversal so embedded governance cannot disappear from `decisions`.
-- [ ] Return the exact field reference or ordered edge path that includes every closure item.
-- [ ] Detect inconsistent duplicates as integrity findings until migration completes.
+- [x] Repair governing-context traversal so embedded governance cannot disappear from `decisions`.
+- [x] Return the exact field reference or ordered edge path that includes every closure item.
+- [x] Detect inconsistent duplicates as integrity findings until migration completes.
 
 Immediate regression to fix:
 
@@ -233,20 +235,20 @@ Verification:
 
 - [ ] A generated integrity report contains zero unexplained embedded/edge disagreements.
 - [ ] Removing an evidence edge causes the relevant closure test to fail.
-- [ ] Parallel and reciprocal edges survive serialization without deduplication.
+- [x] Parallel and reciprocal edges survive serialization without deduplication.
 
 ### P0.10 Separate declarations from verification evidence
 
-- [ ] Define provenance granularity and required fields for nodes, edges, and evidence.
+- [x] Define provenance granularity and required fields for nodes, edges, and evidence.
 - [ ] Require authorship or accountable source identity for publishable declarations.
-- [ ] Represent implementation observation and verification separately from `SATISFIES` declarations.
+- [x] Represent implementation observation and verification separately from `SATISFIES` declarations.
 - [ ] Attach test run, artifact revision, verifier, time, and scope to demonstrated evidence.
 - [ ] Define contradiction and staleness behavior.
 
 Verification:
 
 - [ ] The current ten `SATISFIES` edges remain labeled `DECLARED` until independent evidence is attached.
-- [ ] An agent can query capabilities with declaration but no current verification.
+- [x] An agent can query capabilities with declaration but no current verification.
 - [ ] Revoked or stale evidence does not silently remain demonstrated coverage.
 
 ---
@@ -255,10 +257,10 @@ Verification:
 
 ### P1.1 Complete `describe_authority`
 
-- [ ] Return live node and edge schemas, requiredness, cardinality, reference targets, allowed values, and native/defaulted/derived status.
-- [ ] Return supported scopes, revisions, lifecycle and provenance vocabularies, operations, projections, filters, limits, and caller permissions.
-- [ ] Report unavailable features explicitly.
-- [ ] Include future node types and fields without requiring an MCP release.
+- [x] Return live node and edge schemas, requiredness, cardinality, reference targets, allowed values, and native/defaulted/derived status.
+- [x] Return supported scopes, revisions, lifecycle and provenance vocabularies, operations, projections, filters, limits, and caller permissions.
+- [x] Report unavailable features explicitly.
+- [x] Include future node types and fields without requiring an MCP release.
 
 Verification:
 
@@ -267,10 +269,10 @@ Verification:
 
 ### P1.2 Complete `resolve_references`
 
-- [ ] Batch inputs and preserve independent statuses.
-- [ ] Return original input, canonical identity, parsed coordinates, type, scope, version, match basis, ambiguity candidates, and existence status.
-- [ ] Classify CodeMesh and GroundTruth references without claiming foreign resolution unless the owning authority was queried.
-- [ ] Report `not_checked` separately from `not_found` and `dependency_unavailable`.
+- [x] Batch inputs and preserve independent statuses.
+- [x] Return original input, canonical identity, parsed coordinates, type, scope, version, match basis, ambiguity candidates, and existence status.
+- [x] Classify CodeMesh and GroundTruth references without claiming foreign resolution unless the owning authority was queried.
+- [x] Report `not_checked` separately from `not_found` and `dependency_unavailable`.
 
 Verification:
 
@@ -278,25 +280,25 @@ Verification:
 
 ### P1.3 Complete `get_nodes`
 
-- [ ] Support batch retrieval at one explicit revision.
-- [ ] Support field projection, nested-field selection, raw-source inclusion, and direct-edge summaries.
-- [ ] Preserve unknown fields and type discriminators.
-- [ ] Apply lifecycle, provenance, and source-content authorization.
-- [ ] Avoid repeating identical node bodies unnecessarily.
+- [x] Support batch retrieval at one explicit revision.
+- [x] Support field projection, nested-field selection, raw-source inclusion, and direct-edge summaries.
+- [x] Preserve unknown fields and type discriminators.
+- [x] Apply lifecycle, provenance, and source-content authorization.
+- [x] Avoid repeating identical node bodies unnecessarily.
 
 Verification:
 
 - [ ] A full capability contract round-trips without field loss.
 - [ ] Projection materially reduces payload size while preserving stable identifiers.
-- [ ] One missing item does not fail successful batch items.
+- [x] One missing item does not fail successful batch items.
 
 ### P1.4 Move `search_nodes` into NorthStar
 
-- [ ] Implement server-side exact identifier, structured, lexical, and optional semantic search as separately labeled modes.
-- [ ] Support tenant, solution, type, lifecycle, provenance, tags, relationship presence, and type-specific field filters.
-- [ ] Return match reason and matched field without promoting semantic rank to evidence.
+- [x] Implement server-side exact identifier, structured, lexical, and optional semantic search as separately labeled modes.
+- [x] Support tenant, solution, type, lifecycle, provenance, tags, relationship presence, and type-specific field filters.
+- [x] Return match reason and matched field without promoting semantic rank to evidence.
 - [ ] Add field projection, sorting, stable pagination, context budgets, and hard server limits.
-- [ ] Ensure search cannot leak unauthorized counts or snippets.
+- [x] Ensure search cannot leak unauthorized counts or snippets.
 
 Immediate regression to fix:
 
@@ -305,29 +307,29 @@ Immediate regression to fix:
 Verification:
 
 - [ ] Exact, structured, lexical, and semantic results are distinguishable.
-- [ ] Pages are stable at a pinned revision.
-- [ ] Search works identically with equivalent canonical URI forms.
+- [x] Pages are stable at a pinned revision.
+- [x] Search works identically with equivalent canonical URI forms.
 
 ### P1.5 Move `query_graph` into NorthStar
 
 - [ ] Support multiple starts or match conditions, direction, verb and node filters, depth, stop conditions, scope, lifecycle, provenance, projection, and budgets.
-- [ ] Return separate node, edge, and path collections.
-- [ ] Report visited counts, omitted categories, stopping reason, completeness, and continuation.
-- [ ] Preserve foreign endpoints and parallel edges.
-- [ ] Enforce authorization during traversal, not only on final serialization.
+- [x] Return separate node, edge, and path collections.
+- [x] Report visited counts, omitted categories, stopping reason, completeness, and continuation.
+- [x] Preserve foreign endpoints and parallel edges.
+- [x] Enforce authorization during traversal, not only on final serialization.
 
 Verification:
 
 - [ ] A novel question not represented by a convenience endpoint is answerable through composable traversal.
-- [ ] Limit termination is distinguishable from graph exhaustion.
+- [x] Limit termination is distinguishable from graph exhaustion.
 - [ ] Traversal cannot bridge through an unauthorized node to reveal an authorized endpoint relationship.
 
 ### P1.6 Move `find_paths` into NorthStar
 
 - [ ] Support source and target sets or match conditions, direction, allowed verbs and types, scope, maximum length, path count, and revision.
-- [ ] Preserve ordered nodes and edges with per-edge provenance.
-- [ ] Distinguish no path from incomplete search.
-- [ ] Define deterministic ordering for equivalent paths.
+- [x] Preserve ordered nodes and edges with per-edge provenance.
+- [x] Distinguish no path from incomplete search.
+- [x] Define deterministic ordering for equivalent paths.
 
 Verification:
 
@@ -339,45 +341,45 @@ Verification:
 
 ### P1.7 Rebuild `get_governing_context` over native primitives
 
-- [ ] Include capabilities, components, decisions, invariants, policies, workflows, and qualities supported by evidence.
-- [ ] Return inclusion rule and exact native field or path for each item.
-- [ ] Apply lifecycle, scope, inheritance, and provenance rules explicitly.
-- [ ] Report missing expected relationships and unresolved foreign endpoints.
-- [ ] Make structured data canonical and compact rendering optional.
-- [ ] Include revision, completeness, truncation, and continuation.
+- [x] Include capabilities, components, decisions, invariants, policies, workflows, and qualities supported by evidence.
+- [x] Return inclusion rule and exact native field or path for each item.
+- [x] Apply lifecycle, scope, inheritance, and provenance rules explicitly.
+- [x] Report missing expected relationships and unresolved foreign endpoints.
+- [x] Make structured data canonical and compact rendering optional.
+- [x] Include revision, completeness, truncation, and continuation.
 
 Verification:
 
-- [ ] Every compact item can be retrieved at the same revision.
-- [ ] Every omission is identified by category.
-- [ ] Native retrieval and governing context do not disagree silently.
+- [x] Every compact item can be retrieved at the same revision.
+- [x] Every omission is identified by category.
+- [x] Native retrieval and governing context do not disagree silently.
 
 ### P1.8 Implement `compare_revisions`
 
 - [ ] Compare catalog revisions, selected record versions, and bounded subgraphs.
-- [ ] Return added, removed, and field-level changed nodes and edges.
-- [ ] Include lifecycle, provenance, membership, schema, and foreign-reference changes.
-- [ ] Identify values that cannot be compared losslessly.
-- [ ] Preserve before/after revision and scope metadata.
+- [x] Return added, removed, and field-level changed nodes and edges.
+- [x] Include lifecycle, provenance, membership, schema, and foreign-reference changes.
+- [x] Identify values that cannot be compared losslessly.
+- [x] Preserve before/after revision and scope metadata.
 
 Verification:
 
 - [ ] Controlled fixtures exercise every change class and schema-version transition.
-- [ ] Authorization prevents comparison from revealing inaccessible prior content.
+- [x] Authorization prevents comparison from revealing inaccessible prior content.
 
 ### P1.9 Implement `analyze_integrity`
 
 - [ ] Detect dangling internal references, unresolved foreign references, ambiguity, invalid endpoints, embedded/edge inconsistency, insufficient provenance, lifecycle faults, supersession faults, dependency cycles, membership anomalies, and missing evidence.
 - [ ] Label each rule deterministic or heuristic.
 - [ ] Return supporting records, paths, rule version, severity, scope, and revision.
-- [ ] Allow finding-class filters and bounded continuation.
-- [ ] Keep advisory findings separate from authority facts.
+- [x] Allow finding-class filters and bounded continuation.
+- [x] Keep advisory findings separate from authority facts.
 
 Verification:
 
 - [ ] Seed one defect of every supported class and prove detection.
 - [ ] A clean fixture produces no fabricated findings.
-- [ ] Heuristic changes cannot rewrite native records or deterministic results.
+- [x] Heuristic changes cannot rewrite native records or deterministic results.
 
 ---
 
@@ -416,25 +418,25 @@ Verification:
 
 ### P2.1 Replace transitional adapter derivations
 
-- [ ] Add new NorthStar client methods against the approved native API operations.
-- [ ] Preserve the existing seven tool names where compatible to avoid unnecessary client churn.
-- [ ] Add `compare_revisions` and `analyze_integrity` only when the backend contracts are real.
-- [ ] Remove full-graph client-side search, traversal, and path computation after parity is demonstrated.
-- [ ] Preserve explicit `source_kind`, scope, revision, completeness, limits, and error information through MCP.
-- [ ] Do not allow the MCP adapter to invent missing membership, authorization, evidence, or provenance.
+- [x] Add new NorthStar client methods against the approved native API operations.
+- [x] Preserve the existing seven tool names where compatible to avoid unnecessary client churn.
+- [x] Add `compare_revisions` and `analyze_integrity` only when the backend contracts are real.
+- [x] Remove full-graph client-side search, traversal, and path computation after parity is demonstrated.
+- [x] Preserve explicit `source_kind`, scope, revision, completeness, limits, and error information through MCP.
+- [x] Do not allow the MCP adapter to invent missing membership, authorization, evidence, or provenance.
 
 Verification:
 
 - [ ] MCP and direct HTTP conformance fixtures return semantically equivalent results.
-- [ ] Tool payloads respect requested projections and token budgets.
-- [ ] Existing Codex and Antigravity discovery and read-only calls continue to work.
+- [x] Tool payloads respect requested projections and token budgets.
+- [x] Existing Codex and Antigravity discovery and read-only calls continue to work.
 
 ### P2.2 Update agent guidance
 
-- [ ] Update `explore-northstar` tool-selection guidance for native operations, revisions, evidence, and continuation.
-- [ ] Add examples for ambiguity, partial success, stale revision, truncation, authorization denial, and foreign-authority unavailability.
-- [ ] Explain declared versus demonstrated coverage explicitly.
-- [ ] Validate that tool descriptions remain concise enough for discovery while full schemas remain machine-readable.
+- [x] Update `explore-northstar` tool-selection guidance for native operations, revisions, evidence, and continuation.
+- [x] Add examples for ambiguity, partial success, stale revision, truncation, authorization denial, and foreign-authority unavailability.
+- [x] Explain declared versus demonstrated coverage explicitly.
+- [x] Validate that tool descriptions remain concise enough for discovery while full schemas remain machine-readable.
 
 ---
 
@@ -497,53 +499,41 @@ Release completion criteria:
 
 ## Decisions Explicitly Deferred
 
-- Database and snapshot implementation.
-- REST resource layout and graph query syntax.
-- Authentication provider and token format.
-- Search and optional semantic-ranking technology.
-- Continuation-token encoding.
-- Revision retention duration.
-- Exact performance SLO values.
-- Whether policies, workflows, and qualities become independent stored node types.
+- Production authentication provider and token format.
+- Semantic-ranking technology.
+- Revision retention duration and exact performance SLO values.
+- Field/document-level provenance and a general conflict-set model.
+- Whether policies, workflows, and qualities become independently persisted future node types.
 - Mutation, validation, approval, and publication APIs.
 
-## Open Questions
+## Remaining Questions
 
-- Is the requirements document now approved, or should it first receive formal architect and CTO review?
-- Which current source is authoritative enough to create the first immutable revision?
 - Can one node be owned by multiple solutions, or only visible through inheritance and governance?
 - What evidence qualifies a declared implementation link as demonstrated?
-- Must old revisions preserve the authorization rules from their creation time, or use current authorization policy?
-- Which raw ADR and policy sources may agents retrieve?
-- Is semantic search necessary for the first conforming release?
+- Which raw ADR and policy sources may agents retrieve under finer-grained classifications?
+- When do production evidence and owning-authority readiness justify live CodeMesh/GroundTruth resolution?
 
-## Questions For CTO
+## CTO Decisions Recorded
 
-1. Approve or revise the authoritative revision, membership, inheritance, and authorization semantics in Phase 0.
-2. Confirm whether `CapabilitySpec` is the intentional requirements primitive.
-3. Decide which currently claimed but absent ontology types belong in the first conforming release.
-4. Approve evidence criteria for demonstrated satisfaction and verification.
-5. Approve backward-compatibility expectations for existing `/api/v1` and portal consumers.
-6. Approve initial revision-retention and performance targets.
+The human CTO approved the authority, revision, membership, authorization, relationship, v2-route, and first-release search decisions on 2026-09-03. Revision-retention and production performance targets remain explicit release gates rather than implicit approvals.
 
-## Decisions Requested
+## Decision Record
 
-- Approve the requirements specification as the product standard.
-- Authorize creation and review of the architecture and technical design described in Phase 0.
-- Approve the P0 sequencing before implementation begins.
-- Assign human decision owners for the remaining CTO questions.
+- Requirements and technical design: approved for implementation.
+- Current implementation status: partial conformance, with the open gaps recorded in the conformance document.
+- Production release: not approved by this checklist; its gates remain unchecked.
 
 ## Recommended Next Step
 
-Review and approve Phase 0 decisions, then produce the NorthStar API technical design and map it back into this checklist. Do not begin the storage or endpoint restructuring until the authority, revision, membership, authorization, and relationship-source decisions are explicit.
+Use the conformance record to close the remaining P0/P1 evidence gaps before declaring production readiness. Do not conflate local live validation with migration, recovery, load, or production-security evidence.
 
 ## Approval Status
 
-draft — implementation blocked on Phase 0 design approval
+implementation-approved; production release blocked on remaining unchecked evidence gates
 
 ## CTO Review
 
-Pending.
+Approved by the human CTO on 2026-09-03 for implementation.
 
 ## Sign-Off
 
@@ -559,14 +549,18 @@ Pending.
 
 ### Review Entries
 
-No review entries yet.
+- Reviewer: CTO (Human)
+- Disposition: approved for implementation
+- Evidence: The user stated, "I approve all of the CTO decisions, as you advised. I am good with the technical design."
+- Date: 2026-09-03
 
 ### CTO Sign-Off
 
 - Signer: CTO (Human)
 - Signer Type: human
-- Status: pending
+- Status: approved for implementation
+- Date: 2026-09-03
 
 ### Workflow Status
 
-- Current Status: draft
+- Current Status: implementation in progress; production gates remain open

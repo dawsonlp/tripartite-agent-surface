@@ -13,7 +13,6 @@ from mcp.types import ToolAnnotations
 from tripartite_agent_surface import __version__
 from tripartite_agent_surface.northstar_tools import TOOL_FUNCTIONS
 
-
 Transport = Literal["stdio", "streamable-http"]
 INSTRUCTIONS = (
     "NorthStar is the read-only authority for intent and governance. Start with describe_authority "
@@ -23,13 +22,15 @@ INSTRUCTIONS = (
 )
 
 TOOL_DESCRIPTIONS = {
-    "describe_authority": "Discover NorthStar's live graph vocabulary, available scopes, backend capabilities, counts, and known adapter limitations. Use first when the catalog or supported queries are unknown.",
-    "resolve_references": "Resolve NorthStar URI coordinates in a batch and classify CodeMesh or GroundTruth references without pretending to resolve those foreign authorities.",
-    "get_nodes": "Retrieve complete native NorthStar node records by exact URI, optionally with every directly connected edge. Use after search or traversal returns stable identifiers.",
-    "search_nodes": "Find NorthStar nodes using lexical content plus exact type, lifecycle, tag, and URI-prefix filters. This is adapter-derived search, not semantic proof.",
-    "query_graph": "Explore a bounded NorthStar subgraph in either direction with edge-verb and node-type filters. Use for open-ended relationship questions rather than a canned closure.",
-    "find_paths": "Find ordered, bounded graph paths between two identifiers. Use when the evidence connecting two records matters.",
-    "get_governing_context": "Retrieve NorthStar's current convenience closure for one or more requirements, code symbols, or data references. Inspect native graph evidence separately when conclusions depend on the path.",
+    "describe_authority": "Discover NorthStar's deployed schemas, vocabulary, caller scope, limits, and retained revisions. Use first when the catalog contract is unknown.",
+    "resolve_references": "Resolve NorthStar aliases and defaults in one batch, prove existence separately, and classify CodeMesh or GroundTruth references without inventing foreign results.",
+    "get_nodes": "Retrieve revision-bound native NorthStar records by URI with field projection and optional direct edges.",
+    "search_nodes": "Run NorthStar-native structured and lexical search with field-level match reasons and opaque continuation.",
+    "query_graph": "Traverse the authorized NorthStar graph with direction, verb, type, scope, projection, and resource bounds.",
+    "find_paths": "Find ordered, bounded graph paths and preserve the exact edge evidence connecting records.",
+    "get_governing_context": "Derive governing intent for native or foreign targets with an evidence path or native field reference for every included item.",
+    "compare_revisions": "Compare added, removed, and changed native facts across two retained semantic revisions under current authorization.",
+    "analyze_integrity": "Run deterministic, versioned integrity rules over one authorized revision and return evidence-bearing findings.",
 }
 
 
@@ -73,10 +74,20 @@ def create_app():
 def _transport_security(host: str) -> TransportSecuritySettings | None:
     security = None
     if host not in {"127.0.0.1", "localhost", "::1"}:
-        allowed_hosts = [value.strip() for value in os.getenv("TRIPARTITE_AGENT_ALLOWED_HOSTS", "").split(",") if value.strip()]
-        allowed_origins = [value.strip() for value in os.getenv("TRIPARTITE_AGENT_ALLOWED_ORIGINS", "").split(",") if value.strip()]
+        allowed_hosts = [
+            value.strip()
+            for value in os.getenv("TRIPARTITE_AGENT_ALLOWED_HOSTS", "").split(",")
+            if value.strip()
+        ]
+        allowed_origins = [
+            value.strip()
+            for value in os.getenv("TRIPARTITE_AGENT_ALLOWED_ORIGINS", "").split(",")
+            if value.strip()
+        ]
         if not allowed_hosts or not allowed_origins:
-            raise ValueError("Non-loopback HTTP requires TRIPARTITE_AGENT_ALLOWED_HOSTS and TRIPARTITE_AGENT_ALLOWED_ORIGINS")
+            raise ValueError(
+                "Non-loopback HTTP requires TRIPARTITE_AGENT_ALLOWED_HOSTS and TRIPARTITE_AGENT_ALLOWED_ORIGINS"
+            )
         security = TransportSecuritySettings(
             allowed_hosts=allowed_hosts,
             allowed_origins=allowed_origins,
@@ -86,7 +97,9 @@ def _transport_security(host: str) -> TransportSecuritySettings | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Tripartite NorthStar MCP server")
-    parser.add_argument("transport", nargs="?", choices=("stdio", "streamable-http"), default="stdio")
+    parser.add_argument(
+        "transport", nargs="?", choices=("stdio", "streamable-http"), default="stdio"
+    )
     args = parser.parse_args()
     server = create_server()
     if args.transport == "stdio":

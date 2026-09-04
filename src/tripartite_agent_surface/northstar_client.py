@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -33,7 +33,7 @@ class NorthstarClientConfig:
     timeout_seconds: float = 15.0
 
     @classmethod
-    def from_environment(cls) -> "NorthstarClientConfig":
+    def from_environment(cls) -> NorthstarClientConfig:
         timeout_raw = os.getenv("NORTHSTAR_TIMEOUT_SECONDS", "15")
         try:
             timeout = float(timeout_raw)
@@ -61,10 +61,13 @@ class NorthstarClient:
         *,
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         headers = {"Accept": "application/json"}
         if self.config.bearer_token:
             headers["Authorization"] = f"Bearer {self.config.bearer_token}"
+        if extra_headers:
+            headers.update(extra_headers)
         try:
             with httpx.Client(
                 base_url=self.config.base_url,
@@ -82,6 +85,13 @@ class NorthstarClient:
                 details: Any = response.json()
             except ValueError:
                 details = response.text
+            if (
+                isinstance(details, dict)
+                and details.get("authority") == "northstar"
+                and details.get("status") == "FAILED"
+                and isinstance(details.get("errors"), list)
+            ):
+                return details
             kind = "not_found" if response.status_code == 404 else "backend_rejected"
             raise NorthstarApiError(
                 f"NorthStar returned HTTP {response.status_code}",
@@ -107,6 +117,23 @@ class NorthstarClient:
 
     def health(self) -> dict[str, Any]:
         return self._request("GET", "/health")
+
+    def describe_authority(self, tenant: str = "tripartite") -> dict[str, Any]:
+        return self._request(
+            "GET",
+            "/api/v2/authority",
+            extra_headers={"X-Tenant-ID": tenant},
+        )
+
+    def explore(
+        self, tenant: str, action_path: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Invoke one native, read-only v2 capability operation."""
+        return self._request(
+            "POST",
+            f"/api/v2/tenants/{tenant}/{action_path}",
+            json=payload,
+        )
 
     def tenants(self) -> dict[str, Any]:
         return self._request("GET", "/api/v1/tenants")

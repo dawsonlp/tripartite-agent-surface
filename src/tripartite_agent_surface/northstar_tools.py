@@ -1,355 +1,355 @@
-"""Read-only NorthStar MCP tool implementations."""
+"""Thin, read-only MCP mappings to NorthStar's native v2 exploration API."""
 
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal
 
-from tripartite_agent_surface.graph import (
-    bounded_subgraph,
-    find_paths_in_graph,
-    graph_revision,
-    matching_nodes,
-    paginate,
-    validate_graph,
-)
 from tripartite_agent_surface.northstar_client import NorthstarApiError, NorthstarClient
 
-
-class ToolResult(TypedDict):
-    status: str
-    authority: str
-    source_kind: str
-    catalog_revision: str | None
-    data: dict[str, Any]
-    limitations: list[str]
-    errors: list[dict[str, Any]]
-
-
-TRANSITIONAL_LIMITATIONS = [
-    "NorthStar does not yet expose an authoritative catalog revision; derived-sha256 is a content digest of one fetched graph.",
-    "Tenant and solution membership are not enforced or represented canonically by the current read API.",
-]
+ToolResult = dict[str, Any]
+Direction = Literal["incoming", "outgoing", "both"]
 
 
 def _client() -> NorthstarClient:
     return NorthstarClient()
 
 
-def _error(exc: Exception, *, limitations: list[str] | None = None) -> ToolResult:
+def _error(exc: Exception, operation: str) -> ToolResult:
     if isinstance(exc, NorthstarApiError):
         detail = {
-            "kind": exc.kind,
+            "code": exc.kind.upper(),
             "message": str(exc),
-            "status_code": exc.status_code,
+            "http_status": exc.status_code,
             "details": exc.details,
+            "retryable": exc.kind in {"timeout", "dependency_unavailable"},
         }
     else:
-        detail = {"kind": "invalid_request", "message": str(exc)}
+        detail = {"code": "INVALID_INPUT", "message": str(exc), "retryable": False}
     return {
-        "status": "error",
+        "request_id": None,
+        "operation": f"{operation}@2.0",
+        "status": "FAILED",
         "authority": "northstar",
-        "source_kind": "live_api",
+        "source_kind": "NATIVE",
         "catalog_revision": None,
+        "effective_scope": {},
+        "normalized_query": {},
         "data": {},
-        "limitations": limitations or [],
+        "completeness": {
+            "complete": False,
+            "truncated": False,
+            "stopping_reason": "DEPENDENCY_FAILURE",
+            "omitted_categories": [],
+            "unchecked_dependencies": ["northstar"],
+        },
+        "page": {"continuation": None},
+        "limits": {},
+        "statistics": {"returned": 0, "inspected": 0, "elapsed_ms": None},
+        "warnings": [],
         "errors": [detail],
     }
 
 
-def _success(
-    data: dict[str, Any],
-    *,
-    revision: str | None,
-    source_kind: str = "live_api",
-    limitations: list[str] | None = None,
-    status: str = "ok",
+def _call(
+    operation: str, tenant: str, action_path: str, payload: dict[str, Any]
 ) -> ToolResult:
+    try:
+        return _client().explore(tenant, action_path, payload)
+    except (NorthstarApiError, ValueError) as exc:
+        return _error(exc, operation)
+
+
+def _scope(
+    solutions: list[str] | None,
+    include_global: bool,
+    lifecycle_states: list[str] | None = None,
+    provenance_tiers: list[str] | None = None,
+) -> dict[str, Any]:
     return {
-        "status": status,
-        "authority": "northstar",
-        "source_kind": source_kind,
-        "catalog_revision": revision,
-        "data": data,
-        "limitations": limitations or [],
-        "errors": [],
+        "solutions": solutions or [],
+        "include_global": include_global,
+        "lifecycle_states": lifecycle_states or [],
+        "provenance_tiers": provenance_tiers or [],
     }
 
 
-def describe_authority() -> ToolResult:
-    """Discover NorthStar's live graph vocabulary, scopes, API capabilities, and adapter limits."""
+def _projection(
+    include_data: bool,
+    data_fields: list[str] | None = None,
+    include_raw_source: bool = False,
+) -> dict[str, Any]:
+    return {
+        "include_data": include_data,
+        "data_fields": data_fields or [],
+        "include_raw_source": include_raw_source,
+    }
+
+
+def describe_authority(tenant: str = "tripartite") -> ToolResult:
+    """Discover the deployed contract, schemas, vocabularies, limits, scope, and retained revisions."""
     try:
-        client = _client()
-        health = client.health()
-        tenants = client.tenants()
-        solutions = client.solutions()
-        graph = client.graph()
-        openapi = client.openapi()
-        nodes, edges = validate_graph(graph)
-        node_types = sorted(
-            {str(record.get("type")) for record in nodes.values() if isinstance(record, dict)}
-        )
-        edge_verbs = sorted({str(edge.get("verb")) for edge in edges if edge.get("verb")})
-        api_paths = sorted(str(path) for path in openapi.get("paths", {}))
-        data = {
-            "authority_boundary": "NorthStar owns intent and governance, not code structure or information meaning.",
-            "health": health,
-            "tenants": tenants.get("tenants", []),
-            "solutions": solutions.get("solutions", []),
-            "live_vocabulary": {"node_types": node_types, "edge_verbs": edge_verbs},
-            "counts": {"nodes": len(nodes), "edges": len(edges)},
-            "backend_api": {
-                "title": openapi.get("info", {}).get("title"),
-                "version": openapi.get("info", {}).get("version"),
-                "paths": api_paths,
-            },
-            "mcp_tools": [
-                "describe_authority",
-                "resolve_references",
-                "get_nodes",
-                "search_nodes",
-                "query_graph",
-                "find_paths",
-                "get_governing_context",
-            ],
-            "deferred_requirements": ["compare_revisions", "analyze_integrity"],
-        }
-        return _success(data, revision=graph_revision(graph), limitations=TRANSITIONAL_LIMITATIONS)
+        return _client().describe_authority(tenant)
     except (NorthstarApiError, ValueError) as exc:
-        return _error(exc)
+        return _error(exc, "describe_authority")
 
 
 def resolve_references(
     references: list[str],
-    default_tenant: str = "tripartite",
+    tenant: str = "tripartite",
+    default_solution: str | None = None,
     default_version: str = "latest",
+    revision: str = "latest",
+    foreign_resolution: Literal["NONE", "SYNTAX_ONLY", "LIVE"] = "SYNTAX_ONLY",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
 ) -> ToolResult:
-    """Resolve up to 50 NorthStar URIs; preserve foreign references as unchecked external endpoints."""
-    if not 1 <= len(references) <= 50:
-        return _error(ValueError("references must contain between 1 and 50 values"))
-    results: list[dict[str, Any]] = []
-    errors: list[dict[str, Any]] = []
-    client = _client()
-    for reference in references:
-        if reference.startswith("csi://"):
-            results.append({
-                "input": reference,
-                "authority": "codemesh",
-                "status": "not_checked",
-                "canonical_uri": None,
-            })
-            continue
-        if reference.startswith("data://"):
-            results.append({
-                "input": reference,
-                "authority": "groundtruth",
-                "status": "not_checked",
-                "canonical_uri": None,
-            })
-            continue
-        try:
-            resolved = client.resolve_uri(
-                reference,
-                default_tenant=default_tenant,
-                default_version=default_version,
-            )
-            results.append({"input": reference, "authority": "northstar", "status": "resolved", **resolved})
-        except NorthstarApiError as exc:
-            errors.append({
-                "input": reference,
-                "kind": exc.kind,
-                "message": str(exc),
-                "status_code": exc.status_code,
-                "details": exc.details,
-            })
-    status = "partial" if errors and results else "error" if errors else "ok"
-    return {
-        "status": status,
-        "authority": "northstar",
-        "source_kind": "live_api",
-        "catalog_revision": None,
-        "data": {"results": results, "applied_defaults": {
-            "tenant": default_tenant, "version": default_version,
-        }},
-        "limitations": [
-            "Foreign references are classified but are not resolved until their owning authority is added.",
-            "The current NorthStar resolver may normalize an identifier without proving that a node exists.",
-        ],
-        "errors": errors,
-    }
+    """Resolve aliases/defaults and classify foreign references without overstating existence."""
+    return _call(
+        "resolve_references",
+        tenant,
+        "references:resolve",
+        {
+            "references": references,
+            "default_solution": default_solution,
+            "default_version": default_version,
+            "foreign_resolution": foreign_resolution,
+            "revision": revision,
+            "scope": _scope(solutions, include_global),
+        },
+    )
 
 
-def get_nodes(uris: list[str], include_edges: bool = False) -> ToolResult:
-    """Retrieve up to 100 native nodes by exact graph identifier, optionally with direct edges."""
-    if not 1 <= len(uris) <= 100:
-        return _error(ValueError("uris must contain between 1 and 100 values"))
-    try:
-        graph = _client().graph()
-        nodes, edges = validate_graph(graph)
-        found = {uri: nodes[uri] for uri in uris if uri in nodes}
-        missing = [uri for uri in uris if uri not in nodes]
-        data: dict[str, Any] = {"nodes": found, "missing": missing}
-        if include_edges:
-            requested = set(uris)
-            data["edges"] = [
-                edge for edge in edges
-                if edge.get("source") in requested or edge.get("target") in requested
-            ]
-        status = "partial" if found and missing else "not_found" if missing else "ok"
-        return _success(
-            data,
-            revision=graph_revision(graph),
-            limitations=TRANSITIONAL_LIMITATIONS,
-            status=status,
-        )
-    except (NorthstarApiError, ValueError) as exc:
-        return _error(exc)
+def get_nodes(
+    uris: list[str],
+    tenant: str = "tripartite",
+    revision: str = "latest",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
+    include_data: bool = True,
+    data_fields: list[str] | None = None,
+    include_raw_source: bool = False,
+    direct_edges: Literal["none", "incoming", "outgoing", "both"] = "none",
+) -> ToolResult:
+    """Batch-retrieve native records with projection and optional direct graph edges."""
+    return _call(
+        "get_nodes",
+        tenant,
+        "nodes:batchGet",
+        {
+            "uris": uris,
+            "revision": revision,
+            "scope": _scope(solutions, include_global),
+            "projection": _projection(include_data, data_fields, include_raw_source),
+            "direct_edges": direct_edges,
+        },
+    )
 
 
 def search_nodes(
     query: str | None = None,
+    tenant: str = "tripartite",
+    revision: str = "latest",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
     node_types: list[str] | None = None,
     lifecycle_states: list[str] | None = None,
+    provenance_tiers: list[str] | None = None,
     tags: list[str] | None = None,
     uri_prefix: str | None = None,
-    limit: int = 25,
-    cursor: str | None = None,
+    field_equals: dict[str, Any] | None = None,
+    has_fields: list[str] | None = None,
+    has_relationships: list[str] | None = None,
+    include_data: bool = False,
+    data_fields: list[str] | None = None,
+    page_size: int = 50,
+    continuation: str | None = None,
 ) -> ToolResult:
-    """Lexically search native node JSON with exact structured filters and stable pagination."""
-    try:
-        graph = _client().graph()
-        matches = matching_nodes(
-            graph,
-            query=query,
-            node_types=node_types,
-            lifecycle_states=lifecycle_states,
-            tags=tags,
-            uri_prefix=uri_prefix,
-        )
-        page, next_cursor = paginate(matches, cursor, limit)
-        data = {
-            "matches": page,
-            "match_count": len(matches),
-            "next_cursor": next_cursor,
-            "match_mode": "case_insensitive_lexical_and_structured",
-            "filters": {
-                "query": query,
-                "node_types": node_types or [],
-                "lifecycle_states": lifecycle_states or [],
-                "tags": tags or [],
-                "uri_prefix": uri_prefix,
-            },
-        }
-        return _success(
-            data,
-            revision=graph_revision(graph),
-            source_kind="derived_from_live_graph",
-            limitations=[
-                *TRANSITIONAL_LIMITATIONS,
-                "Search is performed by this adapter over one full-graph response; it is not authoritative semantic search.",
-            ],
-        )
-    except (NorthstarApiError, ValueError) as exc:
-        return _error(exc)
+    """Run native structured and lexical search with revision-bound pagination."""
+    return _call(
+        "search_nodes",
+        tenant,
+        "nodes:search",
+        {
+            "query": query,
+            "modes": ["STRUCTURED", "LEXICAL"] if query else ["STRUCTURED"],
+            "node_types": node_types or [],
+            "uri_prefix": uri_prefix,
+            "tags": tags or [],
+            "field_equals": field_equals or {},
+            "has_fields": has_fields or [],
+            "has_relationships": has_relationships or [],
+            "revision": revision,
+            "scope": _scope(
+                solutions, include_global, lifecycle_states, provenance_tiers
+            ),
+            "projection": _projection(include_data, data_fields),
+            "page": {"size": page_size, "continuation": continuation},
+        },
+    )
 
 
 def query_graph(
     start_uris: list[str],
-    direction: Literal["incoming", "outgoing", "both"] = "both",
-    verbs: list[str] | None = None,
-    node_types: list[str] | None = None,
-    max_depth: int = 2,
-    max_nodes: int = 100,
+    tenant: str = "tripartite",
+    revision: str = "latest",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
+    direction: Direction = "both",
+    include_verbs: list[str] | None = None,
+    exclude_verbs: list[str] | None = None,
+    include_node_types: list[str] | None = None,
+    exclude_node_types: list[str] | None = None,
+    stop_node_types: list[str] | None = None,
+    min_depth: int = 0,
+    max_depth: int = 3,
+    max_nodes: int = 200,
+    max_edges: int = 1000,
+    include_data: bool = False,
+    data_fields: list[str] | None = None,
+    page_size: int = 50,
+    continuation: str | None = None,
 ) -> ToolResult:
-    """Traverse a bounded native subgraph from one or more exact identifiers."""
-    try:
-        graph = _client().graph()
-        data = bounded_subgraph(
-            graph,
-            start_uris=start_uris,
-            direction=direction,
-            verbs=verbs,
-            node_types=node_types,
-            max_depth=max_depth,
-            max_nodes=max_nodes,
-        )
-        return _success(
-            data,
-            revision=graph_revision(graph),
-            source_kind="derived_from_live_graph",
-            limitations=[
-                *TRANSITIONAL_LIMITATIONS,
-                "Traversal is performed by this adapter over one full-graph response until NorthStar provides a native bounded query.",
-            ],
-            status="ok" if data["complete"] else "partial",
-        )
-    except (NorthstarApiError, ValueError) as exc:
-        return _error(exc)
+    """Traverse the authorized native graph under explicit filters and hard budgets."""
+    return _call(
+        "query_graph",
+        tenant,
+        "graph:query",
+        {
+            "start_uris": start_uris,
+            "direction": direction,
+            "include_verbs": include_verbs or [],
+            "exclude_verbs": exclude_verbs or [],
+            "include_node_types": include_node_types or [],
+            "exclude_node_types": exclude_node_types or [],
+            "stop_node_types": stop_node_types or [],
+            "min_depth": min_depth,
+            "revision": revision,
+            "scope": _scope(solutions, include_global),
+            "projection": _projection(include_data, data_fields),
+            "budget": {
+                "max_depth": max_depth,
+                "max_nodes": max_nodes,
+                "max_edges": max_edges,
+            },
+            "page": {"size": page_size, "continuation": continuation},
+        },
+    )
 
 
 def find_paths(
-    source_uri: str,
-    target_uri: str,
-    direction: Literal["incoming", "outgoing", "both"] = "both",
-    verbs: list[str] | None = None,
+    source_uris: list[str],
+    target_uris: list[str],
+    tenant: str = "tripartite",
+    revision: str = "latest",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
+    direction: Direction = "both",
+    include_verbs: list[str] | None = None,
+    include_node_types: list[str] | None = None,
     max_depth: int = 5,
-    max_paths: int = 5,
+    max_paths: int = 10,
+    include_data: bool = False,
+    page_size: int = 10,
+    continuation: str | None = None,
 ) -> ToolResult:
-    """Find bounded, ordered evidence paths between two exact graph identifiers."""
-    try:
-        graph = _client().graph()
-        data = find_paths_in_graph(
-            graph,
-            source_uri=source_uri,
-            target_uri=target_uri,
-            direction=direction,
-            verbs=verbs,
-            max_depth=max_depth,
-            max_paths=max_paths,
-        )
-        return _success(
-            data,
-            revision=graph_revision(graph),
-            source_kind="derived_from_live_graph",
-            limitations=[
-                *TRANSITIONAL_LIMITATIONS,
-                "Path finding is performed by this adapter over one full-graph response.",
-            ],
-        )
-    except (NorthstarApiError, ValueError) as exc:
-        return _error(exc)
+    """Find ordered paths and the exact native edge evidence they use."""
+    return _call(
+        "find_paths",
+        tenant,
+        "graph:findPaths",
+        {
+            "source_uris": source_uris,
+            "target_uris": target_uris,
+            "direction": direction,
+            "include_verbs": include_verbs or [],
+            "include_node_types": include_node_types or [],
+            "revision": revision,
+            "scope": _scope(solutions, include_global),
+            "projection": _projection(include_data),
+            "budget": {"max_depth": max_depth, "max_paths": max_paths},
+            "page": {"size": page_size, "continuation": continuation},
+        },
+    )
 
 
-def get_governing_context(target_uris: list[str]) -> ToolResult:
-    """Get NorthStar's current governing-intent closure for up to 20 native or foreign targets."""
-    if not 1 <= len(target_uris) <= 20:
-        return _error(ValueError("target_uris must contain between 1 and 20 values"))
-    client = _client()
-    contexts: dict[str, Any] = {}
-    errors: list[dict[str, Any]] = []
-    for target_uri in target_uris:
-        try:
-            contexts[target_uri] = client.governing_context(target_uri)
-        except NorthstarApiError as exc:
-            errors.append({
-                "target_uri": target_uri,
-                "kind": exc.kind,
-                "message": str(exc),
-                "status_code": exc.status_code,
-                "details": exc.details,
-            })
-    status = "partial" if contexts and errors else "error" if errors else "ok"
-    return {
-        "status": status,
-        "authority": "northstar",
-        "source_kind": "live_api_derived_closure",
-        "catalog_revision": None,
-        "data": {"contexts": contexts},
-        "limitations": [
-            "The current NorthStar closure does not return evidence paths or an authoritative catalog revision.",
-            "An empty closure means no governing context was returned; it does not prove none exists outside the loaded graph.",
-        ],
-        "errors": errors,
-    }
+def get_governing_context(
+    target_uris: list[str],
+    tenant: str = "tripartite",
+    revision: str = "latest",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
+    include_data: bool = False,
+    data_fields: list[str] | None = None,
+    include_compact_markdown: bool = False,
+    max_depth: int = 3,
+    page_size: int = 50,
+    continuation: str | None = None,
+) -> ToolResult:
+    """Derive governing intent with every inclusion path or native field reference."""
+    return _call(
+        "get_governing_context",
+        tenant,
+        "context:governing",
+        {
+            "target_uris": target_uris,
+            "revision": revision,
+            "scope": _scope(solutions, include_global),
+            "projection": _projection(include_data, data_fields),
+            "include_compact_markdown": include_compact_markdown,
+            "budget": {"max_depth": max_depth},
+            "page": {"size": page_size, "continuation": continuation},
+        },
+    )
+
+
+def compare_revisions(
+    before_revision: str,
+    after_revision: str,
+    tenant: str = "tripartite",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
+    uris: list[str] | None = None,
+    node_types: list[str] | None = None,
+    page_size: int = 50,
+    continuation: str | None = None,
+) -> ToolResult:
+    """Compare retained semantic revisions under the caller's current authorization."""
+    return _call(
+        "compare_revisions",
+        tenant,
+        "revisions:compare",
+        {
+            "before_revision": before_revision,
+            "after_revision": after_revision,
+            "uris": uris or [],
+            "node_types": node_types or [],
+            "scope": _scope(solutions, include_global),
+            "page": {"size": page_size, "continuation": continuation},
+        },
+    )
+
+
+def analyze_integrity(
+    tenant: str = "tripartite",
+    revision: str = "latest",
+    solutions: list[str] | None = None,
+    include_global: bool = True,
+    finding_classes: list[str] | None = None,
+    page_size: int = 50,
+    continuation: str | None = None,
+) -> ToolResult:
+    """Run deterministic integrity rules without treating declarations as proof."""
+    return _call(
+        "analyze_integrity",
+        tenant,
+        "integrity:analyze",
+        {
+            "revision": revision,
+            "scope": _scope(solutions, include_global),
+            "finding_classes": finding_classes or [],
+            "page": {"size": page_size, "continuation": continuation},
+        },
+    )
 
 
 TOOL_FUNCTIONS = {
@@ -360,4 +360,6 @@ TOOL_FUNCTIONS = {
     "query_graph": query_graph,
     "find_paths": find_paths,
     "get_governing_context": get_governing_context,
+    "compare_revisions": compare_revisions,
+    "analyze_integrity": analyze_integrity,
 }

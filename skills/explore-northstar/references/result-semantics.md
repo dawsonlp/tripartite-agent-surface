@@ -2,28 +2,29 @@
 
 ## Source kinds
 
-- `live_api`: returned directly by a current NorthStar read operation.
-- `derived_from_live_graph`: deterministically computed by the agent adapter from one fetched graph.
-- `live_api_derived_closure`: computed by NorthStar's current closure implementation.
+- `NATIVE`: stored NorthStar node or edge facts at the reported revision.
+- `NORMALIZED`: canonical identifiers or other lossless normalization.
+- `DERIVED`: deterministic output with a rule and supporting evidence.
+- `MIXED`: a response that deliberately contains more than one of these classes.
 
 None of these labels alone establishes that referenced code, data, tests, compliance, or realized outcomes were independently verified.
 
 ## Revisions
 
-The current API does not expose an authoritative catalog revision. The adapter returns a `derived-sha256` digest for operations based on a single full-graph response. The digest identifies equal serialized graph content; it is not a durable historical revision and cannot support historical comparison.
+Every successful content operation reports a concrete immutable `revision_id`. Use it for subsequent calls when consistency matters. `latest` is resolved once per request; it is not a session pin. Historical reads are evaluated under the caller's current access policy.
 
 ## Foreign references
 
 - `csi://` belongs to Codemesh.
 - `data://` belongs to GroundTruth.
-- `not_checked` means the owning authority was not queried.
+- `FOREIGN_NOT_CHECKED` means the owning authority was not queried.
+- `DEPENDENCY_UNAVAILABLE` means a requested live check could not reach the owning authority; it does not mean the reference is absent.
 - A NorthStar edge to a foreign reference is still valid evidence that NorthStar records the relationship, even when the target is unresolved.
 
 ## Completeness
 
-- `ok` means the operation completed within its stated scope and limits.
-- `partial` means useful data exists but some inputs failed or a limit was reached.
-- `not_found` means requested exact native nodes were not present in the fetched graph.
-- `error` means the request or dependency failed and no plausible fallback was substituted.
+- `OK` means the operation completed within its stated scope and limits.
+- `PARTIAL` means useful data exists but some inputs failed or a limit was reached.
+- `FAILED` means the request or dependency failed and no plausible fallback was substituted.
 
-Always retain `limitations`, `errors`, `complete`, `truncated`, and continuation fields in downstream reasoning.
+Always retain `errors`, `warnings`, `completeness`, effective scope, concrete revision, and continuation fields in downstream reasoning. `NO_PATH` is conclusive only when the authorized bounded graph was exhausted; `INCOMPLETE_LIMIT_REACHED` is not.

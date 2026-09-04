@@ -489,21 +489,19 @@ The requirements are satisfied when:
 
 ## Recommended Next Step
 
-Have an architect review these requirements against NorthStar's approved authority boundary and current catalog model. After the scope and unresolved authority semantics are approved, produce a technical design that maps the logical operations to an MCP and/or HTTP contract, including exact schemas, authorization behavior, revision handling, limits, and conformance tests.
-
-Do not begin by wrapping the existing REST endpoints one-for-one. First verify that the proposed contract satisfies the acceptance scenarios without losing native graph evidence or importing authority from GroundTruth or Codemesh.
+Implement and verify the approved technical design, then use the conformance record to separate behavior proven in this release from production gates that remain open. The implementation must not reduce the design to one-for-one wrappers over the old REST endpoints or import authority from GroundTruth or CodeMesh.
 
 ## Approval Status
 
-draft
+approved as the governing product scope on 2026-09-03
 
 ## Architect Review
 
-Pending.
+Not separately performed. No independent architect review is claimed.
 
 ## CTO Review
 
-Pending.
+Approved by the human CTO on 2026-09-03 together with the recommended technical-design decisions.
 
 ## Sign-Off
 
@@ -519,14 +517,18 @@ Pending.
 
 ### Review Entries
 
-No review entries yet.
+- Reviewer: CTO (Human)
+- Disposition: approved
+- Evidence: The user stated, "I approve all of the CTO decisions, as you advised. I am good with the technical design."
+- Date: 2026-09-03
 
 ### CTO Sign-Off
 
 - Signer: CTO (Human)
 - Signer Type: human
-- Status: pending
+- Status: approved
+- Date: 2026-09-03
 
 ### Workflow Status
 
-- Current Status: draft
+- Current Status: approved

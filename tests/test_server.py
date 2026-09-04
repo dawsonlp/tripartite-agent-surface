@@ -1,7 +1,8 @@
-import anyio
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import anyio
 from mcp import StdioServerParameters
 from mcp.client import Client
 
@@ -20,6 +21,8 @@ def test_server_exposes_only_read_tools():
             "query_graph",
             "find_paths",
             "get_governing_context",
+            "compare_revisions",
+            "analyze_integrity",
         }
         for tool in result.tools:
             assert tool.annotations.read_only_hint is True

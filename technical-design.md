@@ -51,7 +51,7 @@ The following accepted decisions constrain this design:
 6. The intent model is a typed multigraph with first-class nodes and edges.
 7. Presentation and MCP adapters contain no authority rules or hidden domain logic.
 
-The requirements document remains marked draft, and no separately approved `architecture.md` exists. Accepted ADRs and the existing NorthStar architecture/design set provide a coherent architectural boundary, but this technical design remains draft until the requirements, identified conflict resolutions, and review sections receive human approval.
+The human CTO approved the requirements, this technical design, and the recommended CTO decisions on 2026-09-03. No separate independent architect or implementation-engineer review is claimed; those perspectives remain useful release-quality checks rather than implied approvals.
 
 ## Current-State Findings That Drive the Design
 
@@ -754,32 +754,30 @@ Rollback returns the current-revision pointer and consumers to the last validate
 - Public mutation, validation, approval, and publication contracts.
 - Production deployment topology.
 
-## Open Questions
+## Production-Gate Questions
 
-- Must authorization for a historical revision use current grants, historical grants, or require both? This design recommends current grants unless an audit use case is separately approved.
-- Which raw ADR, policy, and source documents require additional access classification?
+- Historical reads use current grants in this release; a separately approved audit use case may introduce historical-grant semantics later.
+- Raw ADR, policy, and source content requires the explicit raw-source grant until a finer classification is approved.
 - How long must revisions and continuation tokens remain addressable for real agent workflows?
-- Which membership basis records should be human-authored versus deterministically derived during publication?
-- Does the first release need live foreign resolution, or is typed `NOT_CHECKED` status sufficient until GroundTruth and CodeMesh surfaces are added?
+- The first release deterministically materializes ownership and global inheritance; richer human-authored membership bases remain future ontology work.
+- Live foreign resolution is not required for the first release. The API must preserve `NOT_CHECKED` and `DEPENDENCY_UNAVAILABLE` honestly until the owning authority surfaces are integrated.
 - Which current v1 consumers require a compatibility interval, and for how long?
 
-## Questions For CTO
+## CTO Decisions Approved on 2026-09-03
 
-1. Approve immutable PostgreSQL semantic snapshots as the first revision mechanism.
-2. Approve canonical graph edges as relationship authority and embedded fields as validated projections.
-3. Approve current-policy authorization for historical reads, or specify a different rule.
-4. Approve exact, structured, and lexical search as sufficient for the first conforming release.
-5. Approve the `/api/v2/tenants/{tenant}/...` capability route family and v1 migration approach.
-6. Set revision-retention, continuation-expiry, and performance targets before production release.
-7. Decide whether live foreign resolution belongs in the first release.
+1. Immutable PostgreSQL semantic snapshots are the first revision mechanism.
+2. Canonical graph edges are relationship authority; embedded fields are validated projections.
+3. Historical reads use current-policy authorization.
+4. Exact, structured, and lexical search are sufficient for the first release.
+5. The `/api/v2/tenants/{tenant}/...` capability route family and staged v1 migration are approved.
+6. Revision retention and final performance targets remain production-release gates; the implementation defaults are not SLOs.
+7. Typed foreign-reference status is sufficient for the first release; live foreign resolution remains optional and unavailable until an owning-authority gateway is integrated.
 
-## Decisions Requested
+## Decision Record
 
-- Approve the requirements specification as governing product scope.
-- Approve this subsystem, revision, scope, relationship, and interface design.
-- Approve the initial persistence and migration design.
-- Approve the remaining CTO decisions or assign decision owners.
-- Authorize implementation only after architect and senior implementation engineer reviews are accepted.
+- The requirements specification is approved as governing product scope.
+- The subsystem, revision, scope, relationship, interface, persistence, and migration design is approved for implementation.
+- The human CTO explicitly authorized implementation. Formal independent architect and senior implementation-engineer reviews were not performed and must not be inferred from that approval.
 
 ## Recommended Next Step
 
@@ -788,15 +786,15 @@ Review this design from two perspectives:
 1. architecture fidelity—especially authority, equalized capability access, tenant inheritance, and graph semantics;
 2. implementation buildability—especially revision publication, authorization-before-query, migrations, continuation, and failure behavior.
 
-Resolve the open CTO decisions, update the development checklist with accepted review findings, and then begin with preservation of the current live catalog and the v2 revision/scope foundation.
+Complete conformance, migration, restart/recovery, and performance evidence, then decide whether the release is fit for production. Implementation status is tracked in [`development-checklist.md`](development-checklist.md).
 
 ## Approval Status
 
-draft — submitted for architecture, implementation, and CTO review
+approved for implementation on 2026-09-03; production release gates remain open
 
 ## Architect Review
 
-Pending. Required focus:
+Not separately performed. No independent architect approval is claimed. A future review should focus on:
 
 - consistency with accepted ADRs 0001–0006;
 - whether internal subsystem boundaries remain inside the NorthStar authority;
@@ -805,7 +803,7 @@ Pending. Required focus:
 
 ## Senior Implementation Engineer Review
 
-Pending. Required focus:
+Not separately performed. No independent implementation-engineer approval is claimed. A future review should focus on:
 
 - migration safety from the current tables and in-memory graph;
 - buildability of immutable revision snapshots and authorization-first repository calls;
@@ -815,7 +813,7 @@ Pending. Required focus:
 
 ## CTO Review
 
-Pending.
+Approved by the human CTO on 2026-09-03.
 
 ## Sign-Off
 
@@ -831,14 +829,18 @@ Pending.
 
 ### Review Entries
 
-No review entries yet.
+- Reviewer: CTO (Human)
+- Disposition: approved for implementation
+- Evidence: The user stated, "I approve all of the CTO decisions, as you advised. I am good with the technical design."
+- Date: 2026-09-03
 
 ### CTO Sign-Off
 
 - Signer: CTO (Human)
 - Signer Type: human
-- Status: pending
+- Status: approved
+- Date: 2026-09-03
 
 ### Workflow Status
 
-- Current Status: draft
+- Current Status: implementation-approved

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections import defaultdict, deque
 import hashlib
 import json
-from typing import Any, Iterable, Literal
-
+from collections import defaultdict, deque
+from collections.abc import Iterable
+from typing import Any, Literal
 
 Direction = Literal["incoming", "outgoing", "both"]
 
@@ -17,15 +17,21 @@ def graph_revision(graph: dict[str, Any]) -> str:
     return f"derived-sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
-def validate_graph(graph: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def validate_graph(
+    graph: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     nodes = graph.get("nodes")
     edges = graph.get("edges")
     if not isinstance(nodes, dict) or not isinstance(edges, list):
-        raise ValueError("NorthStar graph must contain an object 'nodes' and an array 'edges'")
+        raise TypeError(
+            "NorthStar graph must contain an object 'nodes' and an array 'edges'"
+        )
     return nodes, [edge for edge in edges if isinstance(edge, dict)]
 
 
-def paginate(items: list[Any], cursor: str | None, limit: int) -> tuple[list[Any], str | None]:
+def paginate(
+    items: list[Any], cursor: str | None, limit: int
+) -> tuple[list[Any], str | None]:
     if not 1 <= limit <= 200:
         raise ValueError("limit must be between 1 and 200")
     try:
@@ -63,7 +69,8 @@ def matching_nodes(
         record = nodes[uri]
         if not isinstance(record, dict):
             continue
-        data = record.get("data") if isinstance(record.get("data"), dict) else {}
+        record_data = record.get("data")
+        data: dict[str, Any] = record_data if isinstance(record_data, dict) else {}
         node_type = str(record.get("type", ""))
         lifecycle = str(data.get("lifecycle", data.get("status", "")))
         record_tags = {str(tag) for tag in data.get("tags", []) if isinstance(tag, str)}
@@ -82,7 +89,8 @@ def matching_nodes(
 
 
 def adjacency(
-    edges: Iterable[dict[str, Any]], direction: Direction,
+    edges: Iterable[dict[str, Any]],
+    direction: Direction,
 ) -> dict[str, list[tuple[str, dict[str, Any]]]]:
     result: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
     for edge in edges:
@@ -136,7 +144,12 @@ def bounded_subgraph(
             truncated = True
             break
         record = nodes.get(uri)
-        if record and wanted_types and record.get("type") not in wanted_types and uri not in start_uris:
+        if (
+            record
+            and wanted_types
+            and record.get("type") not in wanted_types
+            and uri not in start_uris
+        ):
             continue
         visited.add(uri)
         if depth >= max_depth:
@@ -149,7 +162,11 @@ def bounded_subgraph(
                 and adjacent_record.get("type") not in wanted_types
             ):
                 continue
-            key = (str(edge.get("source")), str(edge.get("verb")), str(edge.get("target")))
+            key = (
+                str(edge.get("source")),
+                str(edge.get("verb")),
+                str(edge.get("target")),
+            )
             selected_edges[key] = edge
             if adjacent_uri not in visited:
                 queue.append((adjacent_uri, depth + 1))
@@ -161,7 +178,9 @@ def bounded_subgraph(
         "nodes": native_nodes,
         "edges": list(selected_edges.values()),
         "external_references": external_references,
-        "missing_start_uris": [uri for uri in start_uris if uri not in nodes and uri not in neighbors],
+        "missing_start_uris": [
+            uri for uri in start_uris if uri not in nodes and uri not in neighbors
+        ],
         "complete": not truncated,
         "truncated": truncated,
         "limits": {"max_depth": max_depth, "max_nodes": max_nodes},
@@ -188,7 +207,9 @@ def find_paths_in_graph(
         edge for edge in edges if not wanted_verbs or edge.get("verb") in wanted_verbs
     ]
     neighbors = adjacency(usable_edges, direction)
-    queue = deque([(source_uri, [source_uri], [])])
+    queue: deque[tuple[str, list[str], list[dict[str, Any]]]] = deque(
+        [(source_uri, [source_uri], [])]
+    )
     paths: list[dict[str, Any]] = []
     exhausted = True
 

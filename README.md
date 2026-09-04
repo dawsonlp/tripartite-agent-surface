@@ -2,13 +2,13 @@
 
 This sub-project packages agent-facing MCP servers and skills for the Tripartite Semantic Federation.
 
-Version 0.1 contains a read-only NorthStar MCP server and the `explore-northstar` skill. GroundTruth and Codemesh will be added as separate authority surfaces so their semantics and permissions remain distinct.
+Version 0.2 contains a read-only NorthStar MCP server and the `explore-northstar` skill. GroundTruth and Codemesh will be added as separate authority surfaces so their semantics and permissions remain distinct.
 
 ## Boundary
 
-This project is an adapter, not a semantic authority. NorthStar owns intent. The adapter calls NorthStar's service, preserves native nodes and edges, and labels any client-side search or traversal it performs. It must not silently invent intent, resolve foreign-authority facts, or mutate NorthStar.
+This project is an adapter, not a semantic authority. NorthStar owns intent. The adapter calls NorthStar's native `/api/v2` exploration operations and preserves their result envelopes, revisions, nodes, edges, evidence paths, and failures. It must not silently invent intent, resolve foreign-authority facts, or mutate NorthStar.
 
-The current NorthStar API lacks several operations required by [`docs/northstar-agent-api-requirements.md`](docs/northstar-agent-api-requirements.md). Version 0.1 therefore provides a useful transitional surface over the existing read API and reports the missing revision, membership, evidence-path, and historical capabilities as limitations.
+The MCP server exposes nine operations: authority discovery, reference resolution, native node retrieval, native search, graph traversal, path finding, governing context, revision comparison, and integrity analysis. The complete HTTP examples and failure semantics are in [`docs/northstar-agent-api-examples.md`](docs/northstar-agent-api-examples.md).
 
 ## Run
 
@@ -31,7 +31,7 @@ Set `RUN_NORTHSTAR_LIVE=1` to include the read-only live-service test.
 
 ## Planned authority surfaces
 
-- NorthStar: available in version 0.1.
+- NorthStar: available in version 0.2.
 - GroundTruth: planned; no tools are declared yet.
 - Codemesh: planned; no tools are declared yet.
 
